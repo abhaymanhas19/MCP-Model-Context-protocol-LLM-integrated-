@@ -1,0 +1,805 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Codebook Viewer</title>
+    <style>
+      :root {
+        --bg: #ffffff;
+        --surface: #fafafa;
+        --border: rgba(0, 0, 0, 0.12);
+        --border-subtle: rgba(0, 0, 0, 0.08);
+        --text: #111827;
+        --muted: #6b7280;
+        --shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+        --radius: 16px;
+        --radius-sm: 12px;
+        --pad: 14px;
+        --gap: 10px;
+
+        /* Brand accent only on primary action */
+        --brand: #2563eb;
+        --brand-ink: #ffffff;
+
+        /* Links */
+        --link: #2563eb;
+        --link-hover: #1d4ed8;
+        --link-visited: #1e40af;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0b0f14;
+          --surface: #0f1620;
+          --border: rgba(255, 255, 255, 0.14);
+          --border-subtle: rgba(255, 255, 255, 0.09);
+          --text: #e5e7eb;
+          --muted: #9ca3af;
+          --shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+
+          --brand: #3b82f6;
+          --brand-ink: #0b0f14;
+
+          /* Links (clearer in dark mode) */
+          --link: #93c5fd;
+          --link-hover: #bfdbfe;
+          --link-visited: #60a5fa;
+        }
+      }
+
+      html,
+      body {
+        background: transparent;
+        color: var(--text);
+        margin: 0;
+        padding: 0;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial,
+          sans-serif;
+        line-height: 1.35;
+      }
+
+      a {
+        color: var(--link);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+      a:hover {
+        color: var(--link-hover);
+      }
+      a:visited {
+        color: var(--link-visited);
+      }
+      a:focus-visible {
+        outline: 2px solid rgba(59, 130, 246, 0.55);
+        outline-offset: 2px;
+        border-radius: 8px;
+      }
+
+      .wrap {
+        padding: 12px;
+      }
+
+      /* Inline-card-like container */
+      .card {
+        width: 100%;
+        max-width: 780px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--bg);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .card-header {
+        padding: var(--pad);
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+
+      .title {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 650;
+        letter-spacing: 0.1px;
+      }
+
+      .meta {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+
+      .content {
+        padding: var(--pad);
+        display: grid;
+        gap: var(--gap);
+      }
+
+      .warnings {
+        border: 1px solid var(--border-subtle);
+        background: var(--surface);
+        border-radius: var(--radius-sm);
+        padding: 10px 12px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .warnings ul {
+        margin: 8px 0 0 18px;
+        padding: 0;
+      }
+
+      /* Theme + Code blocks */
+      details {
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-sm);
+        background: var(--bg);
+        overflow: hidden;
+      }
+
+      summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        user-select: none;
+      }
+
+      summary:hover {
+        background: color-mix(in srgb, var(--surface) 70%, transparent);
+      }
+
+      /* Hide default marker in a cross-browser-ish way */
+      summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .summary-left {
+        display: grid;
+        gap: 3px;
+        min-width: 0;
+      }
+
+      .summary-title {
+        font-size: 14px;
+        font-weight: 650;
+        margin: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .summary-desc {
+        font-size: 12px;
+        color: var(--muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 64ch;
+      }
+
+      .summary-actions {
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .summary-right {
+        font-size: 12px;
+        color: var(--muted);
+        border: 1px solid var(--border-subtle);
+        background: var(--surface);
+        border-radius: 999px;
+        padding: 4px 8px;
+        white-space: nowrap;
+      }
+
+      /* + / - toggle affordance */
+      .toggle-btn {
+        width: 28px;
+        height: 28px;
+        border: 1px solid var(--border-subtle);
+        background: var(--surface);
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--muted);
+        font-weight: 700;
+        line-height: 1;
+        flex: none;
+      }
+
+      .toggle-btn::before {
+        content: "+";
+        font-size: 16px;
+        transform: translateY(-0.5px);
+      }
+
+      details[open] > summary .toggle-btn::before {
+        content: "−";
+        font-size: 18px;
+        transform: translateY(-1px);
+      }
+
+      .details-body {
+        border-top: 1px solid var(--border-subtle);
+        padding: 12px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .kv {
+        display: grid;
+        gap: 6px;
+      }
+
+      .label {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .value {
+        font-size: 13px;
+      }
+
+      .theme-desc-full {
+        font-size: 13px;
+        color: var(--text);
+        margin: 0;
+      }
+
+      .codes {
+        display: grid;
+        gap: 10px;
+      }
+
+      .code summary {
+        padding: 10px 12px;
+      }
+
+      .code-name {
+        font-size: 13px;
+        font-weight: 650;
+        margin: 0;
+      }
+
+      .quotes {
+        display: grid;
+        gap: 8px;
+      }
+
+      blockquote {
+        margin: 0;
+        padding: 10px 12px;
+        border-left: 3px solid var(--border);
+        background: var(--surface);
+        border-radius: 10px;
+      }
+
+      .quote {
+        font-size: 13px;
+        margin: 0;
+      }
+
+      .source {
+        margin-top: 6px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .empty {
+        border: 1px dashed var(--border-subtle);
+        border-radius: var(--radius-sm);
+        padding: 12px;
+        color: var(--muted);
+        background: var(--surface);
+        font-size: 13px;
+      }
+
+      /* Promo */
+      .promo {
+        margin-top: 6px;
+        border-top: 1px solid var(--border-subtle);
+        padding: var(--pad);
+        background: var(--bg);
+      }
+
+      .promo h4 {
+        margin: 0 0 6px;
+        font-size: 14px;
+        font-weight: 650;
+      }
+
+      .muted {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .promo-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      @media (min-width: 576px) {
+        .promo-actions {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      .linkbtn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        border-radius: 999px;
+        padding: 10px 12px;
+        font-size: 13px;
+        border: 1px solid var(--border);
+        background: var(--bg);
+        color: var(--text);
+        white-space: nowrap;
+      }
+
+      .linkbtn.primary {
+        border-color: transparent;
+        background: var(--brand);
+        color: var(--brand-ink);
+      }
+
+      .linkbtn.secondary {
+        background: var(--surface);
+      }
+
+      /* Make details focus visible without adding heavy UI */
+      summary:focus-visible,
+      .linkbtn:focus-visible {
+        outline: 2px solid rgba(59, 130, 246, 0.55);
+        outline-offset: 2px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="wrap">
+      <div class="card" role="region" aria-label="JSON codebook viewer">
+        <header class="card-header">
+          <div>
+            <h3 class="title">AILYZE Codebook</h3>
+          </div>
+        </header>
+
+        <main class="content">
+          <div
+            id="fallbackWarning"
+            class="warnings"
+            role="alert"
+            aria-live="assertive"
+            hidden
+          >
+            <strong style="font-weight: 650">⚠ Dummy data shown</strong>
+            <div style="margin-top: 6px">
+              The analysis output was not received, so a sample codebook is
+              displayed. Please ask ChatGPT to trigger the app again to see your
+              real results.
+            </div>
+          </div>
+
+          <div
+            id="warnings"
+            class="warnings"
+            role="status"
+            aria-live="polite"
+            hidden
+          ></div>
+
+          <div id="themes"></div>
+
+          <aside class="promo" aria-label="Promote AILYZE">
+            <h4>Want the full analysis?</h4>
+            <p class="muted" style="margin: 0">
+              Explore a complete
+              <a
+                href="https://www.ailyze.com/view-shared-project/71d85bba-c18c-4ee0-a9b6-6749c73cfe94?pin=637536"
+                target="_blank"
+                rel="noreferrer"
+              >
+                AI-powered report on sample data</a
+              >, featuring in-depth thematic, content, frequency, and cross-segment
+              analysis—plus interactive chat, visualizations, citations, and more.
+              Or, upload your own data and run a full analysis on
+              <a href="https://www.ailyze.com" target="_blank" rel="noreferrer"
+                >AILYZE</a
+              >.
+            </p>
+          </aside>
+        </main>
+      </div>
+    </div>
+
+    <script>
+      // ----------------------------
+      // Globals + state (as requested)
+      // ----------------------------
+      const initialGlobals = () => ({
+        toolOutput: window.openai?.toolOutput ?? null,
+        toolMeta: window.openai?.toolResponseMetadata ?? null,
+        widgetState: window.openai?.widgetState ?? null,
+      });
+
+      function defaultViewState() {
+        return { openedThemeIndex: null };
+      }
+
+      function pickOpenedThemeIndex(widgetState) {
+        // Backward-compatible: accept either a flat widgetState or a nested privateContent shape.
+        const direct = widgetState?.openedThemeIndex;
+        if (typeof direct === "number" || direct === null) return direct;
+
+        const nested = widgetState?.privateContent?.openedThemeIndex;
+        if (typeof nested === "number" || nested === null) return nested;
+
+        return null;
+      }
+
+      const globals = initialGlobals();
+
+      let viewState = {
+        ...defaultViewState(),
+        openedThemeIndex: pickOpenedThemeIndex(globals.widgetState),
+      };
+
+      // ----------------------------
+      // Fallback + parsing (as requested)
+      // ----------------------------
+      const FALLBACK = {
+        themes: [
+          {
+            theme_name: "Usability and Navigation",
+            description: "How users experience the interface and navigation flow.",
+            codes: [
+              {
+                code_name: "Intuitive Layout",
+                definition:
+                  "Users find the interface easy to understand without guidance.",
+                example_quotes: [
+                  {
+                    quote:
+                      "I could immediately tell where everything was without clicking around too much.",
+                    source: "Survey respondent #01",
+                  },
+                ],
+              },
+              {
+                code_name: "Feature Discoverability",
+                definition: "Ease of finding available features.",
+                example_quotes: [
+                  {
+                    quote:
+                      "Some advanced features are powerful but hard to locate at first.",
+                    source: "Interview – User A",
+                  },
+                ],
+              },
+              {
+                code_name: "Navigation Flow",
+                definition: "Logical progression between screens and actions.",
+                example_quotes: [
+                  {
+                    quote:
+                      "The steps follow a natural order, which makes tasks faster.",
+                    source: "Usability test participant #3",
+                  },
+                ],
+              },
+              {
+                code_name: "Visual Clarity",
+                definition: "Cleanliness and readability of the interface.",
+                example_quotes: [
+                  {
+                    quote: "The design feels uncluttered and easy on the eyes.",
+                    source: "Product feedback form #17",
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            theme_name: "Performance and Reliability",
+            description: "Perceived speed and technical stability.",
+            codes: [
+              {
+                code_name: "System Speed",
+                definition: "How fast the system responds to actions.",
+                example_quotes: [
+                  { quote: "Most actions load almost instantly.", source: "Survey respondent #02" },
+                ],
+              },
+              {
+                code_name: "Downtime Issues",
+                definition: "Mentions of outages or service interruptions.",
+                example_quotes: [
+                  {
+                    quote: "I’ve experienced a few unexpected logouts during peak hours.",
+                    source: "Interview – User B",
+                  },
+                ],
+              },
+              {
+                code_name: "Data Saving Reliability",
+                definition: "Confidence that work is saved correctly.",
+                example_quotes: [
+                  {
+                    quote: "I trust that my progress won’t be lost if I step away.",
+                    source: "Customer interview #11",
+                  },
+                ],
+              },
+              {
+                code_name: "Bug Frequency",
+                definition: "How often users encounter errors or glitches.",
+                example_quotes: [
+                  {
+                    quote: "Minor bugs appear occasionally but nothing critical.",
+                    source: "Support ticket follow-up #6",
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+
+      const warnings = [];
+
+      function isObj(v) {
+        return v !== null && typeof v === "object" && !Array.isArray(v);
+      }
+
+      function escapeHtml(s) {
+        return String(s ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function coerceArray(v) {
+        return Array.isArray(v) ? v : [];
+      }
+
+      // ----------------------------
+      // Data source: toolOutput -> parsed object
+      // ----------------------------
+      const raw = globals.toolOutput;
+      const toolMeta = globals.toolMeta;
+
+      // ----------------------------
+      // Fallback detection + warning
+      // ----------------------------
+      const isUsingFallback = !isObj(raw) || !Array.isArray(raw?.themes);
+      const elFallbackWarning = document.getElementById("fallbackWarning");
+      if (isUsingFallback && elFallbackWarning) elFallbackWarning.hidden = false;
+
+      const input = isObj(raw) ? raw : FALLBACK;
+      const themesIn = Array.isArray(input.themes) ? input.themes : [];
+      if (!Array.isArray(input.themes)) {
+        warnings.push("Expected { themes: [...] }. Using fallback or empty list.");
+      }
+
+      // Surface widget-only validation issues (if present)
+      const validationIssues = coerceArray(toolMeta?.validationIssues);
+      if (validationIssues.length) {
+        const shown = validationIssues.slice(0, 20).map((it) => {
+          const path = isObj(it) ? it.path : "";
+          const msg = isObj(it) ? it.message : "";
+          return path && msg ? `${path}: ${msg}` : String(it);
+        });
+        warnings.push(`Validation warnings (${validationIssues.length}):`);
+        warnings.push(...shown);
+        if (validationIssues.length > shown.length) {
+          warnings.push(`…and ${validationIssues.length - shown.length} more.`);
+        }
+      }
+
+      // Optional stats (widget-only)
+      const stats = isObj(toolMeta?.stats) ? toolMeta.stats : null;
+      if (stats && (stats.themes || stats.codes || stats.quotes)) {
+        warnings.push(
+          `Counts — themes: ${stats.themes ?? 0}, codes: ${stats.codes ?? 0}, quotes: ${stats.quotes ?? 0}`
+        );
+      }
+
+      // ----------------------------
+      // Render
+      // ----------------------------
+      const elThemes = document.getElementById("themes");
+      const elWarnings = document.getElementById("warnings");
+
+      function notifyHeightSoon() {
+        // Best-effort: keep the host aware of intrinsic height (prevents clipping in some shells)
+        try {
+          if (typeof window.openai?.notifyIntrinsicHeight === "function") {
+            // defer so layout settles
+            setTimeout(() => window.openai.notifyIntrinsicHeight(), 0);
+          }
+        } catch (_) {}
+      }
+
+      function renderWarnings() {
+        if (!warnings.length) {
+          elWarnings.hidden = true;
+          elWarnings.innerHTML = "";
+          return;
+        }
+        elWarnings.hidden = false;
+        elWarnings.innerHTML = `
+          <div><strong style="font-weight:650">Notes</strong></div>
+          <ul>${warnings.map((w) => `<li>${escapeHtml(w)}</li>`).join("")}</ul>
+        `;
+      }
+
+      function themeSummary(theme, idx) {
+        const tNum = idx + 1;
+        const rawName = theme?.theme_name ?? `Theme ${tNum}`;
+        const name = `Theme ${tNum}. ${rawName}`;
+        const desc = theme?.description ?? "";
+        const codes = coerceArray(theme?.codes);
+        const count = codes.length === 1 ? "1 code" : `${codes.length} codes`;
+
+        return `
+          <summary aria-label="${escapeHtml(name)}">
+            <div class="summary-left">
+              <p class="summary-title">${escapeHtml(name)}</p>
+              <p class="summary-desc">${escapeHtml(desc)}</p>
+            </div>
+            <div class="summary-actions">
+              <div class="summary-right">${escapeHtml(count)}</div>
+              <span class="toggle-btn" aria-hidden="true"></span>
+            </div>
+          </summary>
+        `;
+      }
+
+      function codeBlock(code, tIdx, cIdx) {
+        const tNum = tIdx + 1;
+        const cNum = cIdx + 1;
+
+        const rawName = code?.code_name ?? `Code ${cNum}`;
+        const name = `Code ${tNum}.${cNum} ${rawName}`;
+        const def = code?.definition ?? "";
+        const quotes = coerceArray(code?.example_quotes);
+
+        const quotesHtml =
+          quotes.length > 0
+            ? `
+              <div class="quotes" aria-label="Quotes">
+                ${quotes
+                  .map((q) => {
+                    const qt = q?.quote ?? "";
+                    const src = q?.source ?? "";
+                    return `
+                      <blockquote>
+                        <p class="quote">“${escapeHtml(qt)}”</p>
+                        ${src ? `<div class="source">${escapeHtml(src)}</div>` : ""}
+                      </blockquote>
+                    `;
+                  })
+                  .join("")}
+              </div>
+            `
+            : `<div class="muted">No example quotes provided.</div>`;
+
+        return `
+          <details class="code">
+            <summary aria-label="${escapeHtml(name)}">
+              <div class="summary-left">
+                <p class="code-name">${escapeHtml(name)}</p>
+                <p class="summary-desc">${escapeHtml(def)}</p>
+              </div>
+              <div class="summary-actions">
+                <span class="toggle-btn" aria-hidden="true"></span>
+              </div>
+            </summary>
+            <div class="details-body">
+              ${quotesHtml}
+            </div>
+          </details>
+        `;
+      }
+
+      function persistViewState(next) {
+        viewState = next;
+
+        // Best-effort persist (Apps SDK hosts may offer a setter; keep it optional)
+        try {
+          if (typeof window.openai?.setWidgetState === "function") {
+            window.openai.setWidgetState(viewState);
+          } else if (window.openai) {
+            window.openai.widgetState = viewState;
+          }
+        } catch (_) {}
+      }
+
+      function renderThemes(themes) {
+        if (!themes.length) {
+          elThemes.innerHTML = `
+            <div class="empty">
+              No codebook themes found. Please ask ChatGPT to trigger the app and try again.
+            </div>
+          `;
+          notifyHeightSoon();
+          return;
+        }
+
+        elThemes.innerHTML = themes
+          .map((t, idx) => {
+            const codes = coerceArray(t?.codes);
+
+            return `
+              <details class="theme" data-theme-index="${idx}">
+                ${themeSummary(t, idx)}
+                <div class="details-body">
+                  <div class="kv">
+                    <div class="codes">
+                      ${
+                        codes.length
+                          ? codes.map((c, cIdx) => codeBlock(c, idx, cIdx)).join("")
+                          : `<div class="muted">No codes provided for this theme.</div>`
+                      }
+                    </div>
+                  </div>
+                </div>
+              </details>
+            `;
+          })
+          .join("");
+
+        // Optional: keep one theme open if viewState says so
+        if (
+          typeof viewState.openedThemeIndex === "number" &&
+          viewState.openedThemeIndex >= 0 &&
+          viewState.openedThemeIndex < themes.length
+        ) {
+          const toOpen = elThemes.querySelector(
+            `details.theme[data-theme-index="${viewState.openedThemeIndex}"]`
+          );
+          if (toOpen) toOpen.open = true;
+        }
+
+        // Persist a tiny bit of state (which theme is open), without adding complex controls
+        elThemes.addEventListener("toggle", (e) => {
+          const d = e.target;
+          if (!(d instanceof HTMLDetailsElement)) return;
+          if (!d.classList.contains("theme")) return;
+
+          const idx = Number(d.getAttribute("data-theme-index"));
+          const openedThemeIndex =
+            d.open && Number.isFinite(idx) ? idx : viewState.openedThemeIndex === idx ? null : viewState.openedThemeIndex;
+
+          persistViewState({ ...viewState, openedThemeIndex });
+          notifyHeightSoon();
+        });
+
+        notifyHeightSoon();
+      }
+
+      // ----------------------------
+      // Run
+      // ----------------------------
+      renderWarnings();
+      renderThemes(themesIn);
+    </script>
+  </body>
+</html>

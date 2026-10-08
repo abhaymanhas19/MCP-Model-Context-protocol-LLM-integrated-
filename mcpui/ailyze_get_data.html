@@ -1,0 +1,961 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Evidano</title>
+    <style>
+      :root {
+        --bg: #ffffff;
+        --surface: #fafafa;
+        --border: rgba(0, 0, 0, 0.12);
+        --border-subtle: rgba(0, 0, 0, 0.08);
+        --text: #111827;
+        --muted: #6b7280;
+        --shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+        --radius: 16px;
+        --radius-sm: 12px;
+        --pad: 14px;
+        --gap: 10px;
+
+        --link: #2563eb;
+        --link-hover: #1d4ed8;
+
+        --ok-bg: rgba(11, 107, 11, 0.12);
+        --ok-fg: #0b6b0b;
+        --err-bg: rgba(176, 0, 32, 0.12);
+        --err-fg: #b00020;
+        --warn-bg: rgba(245, 158, 11, 0.14);
+        --warn-fg: #92400e;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0b0f14;
+          --surface: #0f1620;
+          --border: rgba(255, 255, 255, 0.14);
+          --border-subtle: rgba(255, 255, 255, 0.09);
+          --text: #e5e7eb;
+          --muted: #9ca3af;
+          --shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+
+          --link: #93c5fd;
+          --link-hover: #bfdbfe;
+
+          --ok-bg: rgba(34, 197, 94, 0.16);
+          --ok-fg: #86efac;
+          --err-bg: rgba(248, 113, 113, 0.16);
+          --err-fg: #fca5a5;
+          --warn-bg: rgba(251, 191, 36, 0.16);
+          --warn-fg: #fde68a;
+        }
+      }
+
+      html,
+      body {
+        background: transparent;
+        color: var(--text);
+        margin: 0;
+        padding: 0;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        line-height: 1.35;
+      }
+
+      a {
+        color: var(--link);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+      a:hover {
+        color: var(--link-hover);
+      }
+
+      .wrap {
+        padding: 12px;
+      }
+
+      .card {
+        width: 100%;
+        max-width: 860px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--bg);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .card-header {
+        padding: var(--pad);
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 12px;
+        border-bottom: 1px solid var(--border-subtle);
+        align-items: start;
+      }
+
+      .title {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 650;
+        letter-spacing: 0.1px;
+      }
+
+      .meta {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+          "Courier New", monospace;
+      }
+
+      .actions {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        align-items: flex-end;
+        justify-content: flex-start;
+        text-align: right;
+      }
+
+      button {
+        appearance: none;
+        border: 1px solid var(--border-subtle);
+        background: var(--surface);
+        color: var(--text);
+        padding: 7px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      button:hover {
+        border-color: var(--border);
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .content {
+        padding: var(--pad);
+        display: grid;
+        gap: var(--gap);
+      }
+
+      .bar {
+        border: 1px solid var(--border-subtle);
+        background: var(--surface);
+        border-radius: var(--radius-sm);
+        padding: 10px 12px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .bar strong {
+        font-weight: 650;
+        color: var(--text);
+      }
+
+      .helper {
+        margin-top: 8px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .helper.err {
+        color: var(--err-fg);
+      }
+
+      .tablewrap {
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+        background: var(--bg);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      thead th {
+        text-align: left;
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 650;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border-subtle);
+        background: color-mix(in srgb, var(--surface) 78%, transparent);
+      }
+
+      tbody td {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border-subtle);
+        vertical-align: top;
+        font-size: 13px;
+      }
+
+      tbody tr:last-child td {
+        border-bottom: none;
+      }
+
+      .urlcell {
+        min-width: 0;
+      }
+
+      .urltext {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 64ch;
+      }
+
+      .subtext {
+        margin-top: 4px;
+        font-size: 12px;
+        color: var(--muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 64ch;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        padding: 4px 9px;
+        font-size: 12px;
+        border: 1px solid var(--border-subtle);
+        background: var(--surface);
+        color: var(--muted);
+        white-space: nowrap;
+      }
+
+      .pill.ok {
+        background: var(--ok-bg);
+        border-color: color-mix(in srgb, var(--ok-fg) 22%, var(--border-subtle));
+        color: var(--ok-fg);
+      }
+
+      .pill.err {
+        background: var(--err-bg);
+        border-color: color-mix(in srgb, var(--err-fg) 22%, var(--border-subtle));
+        color: var(--err-fg);
+      }
+
+      .pill.warn {
+        background: var(--warn-bg);
+        border-color: color-mix(in srgb, var(--warn-fg) 22%, var(--border-subtle));
+        color: var(--warn-fg);
+      }
+
+      details {
+        margin-top: 6px;
+      }
+      summary {
+        cursor: pointer;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .empty {
+        border: 1px dashed var(--border-subtle);
+        border-radius: var(--radius-sm);
+        padding: 12px;
+        color: var(--muted);
+        background: var(--surface);
+        font-size: 13px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="wrap">
+      <div class="card" role="region" aria-label="AILYZE">
+        <header class="card-header">
+          <div>
+            <h3 class="title">Download Data</h3>
+            <div id="summaryLine" class="meta" aria-live="polite">Initializing…</div>
+          </div>
+          <div class="actions">
+            <div class="meta mono" id="refreshLine" aria-live="polite">
+              Refreshing in — | Last refreshed —
+            </div>
+            <div class="meta mono" id="overallElapsed" aria-label="Overall elapsed">00:00</div>
+          </div>
+        </header>
+
+        <main class="content">
+          <div class="tablewrap" aria-label="URLs being processed">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 52%">URL</th>
+                  <th style="width: 16%">Status</th>
+                  <th style="width: 12%">Elapsed</th>
+                  <th style="width: 20%">Downloads</th>
+                </tr>
+              </thead>
+              <tbody id="rows"></tbody>
+            </table>
+          </div>
+          <br /><br />
+          <div id="hintBox" class="bar" hidden>
+            <strong>Tip:</strong>
+            <span class="helper"
+              >You can leave this chat open (do not close); the widget will keep checking
+              periodically.</span
+            >
+          </div>
+
+          <!-- Footer CTA -->
+          <footer class="bar" aria-label="Evidano report call to action">
+            <strong>Need to analyze your data?</strong>
+            <p class="muted" style="margin: 0">
+              Explore a complete
+              <a
+                href="https://www.evidano.com/view-excel-share-project/cHJvamVjdF9pZD03NDI3JnVzZXJfZW1haWw9YWlseXplJTQwb3V0bG9vay5jb20="
+                target="_blank"
+                rel="noreferrer"
+              >
+                AI-powered report on sample data</a
+              >, featuring in-depth thematic, content, frequency, and cross-segment analysis—plus
+              interactive chat, visualizations, citations, and more. Or, upload your own data and
+              run a full analysis on
+              <a href="https://www.evidano.com" target="_blank" rel="noreferrer">Evidano</a>.
+            </p>
+          </footer>
+        </main>
+      </div>
+    </div>
+
+    <script>
+      // ----------------------------
+      // Utils
+      // ----------------------------
+      function isObj(v) {
+        return v !== null && typeof v === "object" && !Array.isArray(v);
+      }
+
+      function escapeHtml(s) {
+        return String(s ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function notifyHeightSoon() {
+        try {
+          if (typeof window.openai?.notifyIntrinsicHeight === "function") {
+            setTimeout(() => window.openai.notifyIntrinsicHeight(), 0);
+          }
+        } catch (_) {}
+      }
+
+      function fmtElapsed(ms) {
+        const total = Math.max(0, Math.floor(ms / 1000));
+        const hh = Math.floor(total / 3600);
+        const mm = Math.floor((total % 3600) / 60);
+        const ss = total % 60;
+        const pad = (n) => String(n).padStart(2, "0");
+        return hh > 0 ? `${pad(hh)}:${pad(mm)}:${pad(ss)}` : `${pad(mm)}:${pad(ss)}`;
+      }
+
+      function fmtAgo(ms) {
+        const s = Math.max(0, Math.floor(ms / 1000));
+        if (s < 2) return "just now";
+        if (s < 60) return `${s}s ago`;
+        const m = Math.floor(s / 60);
+        if (m < 60) return `${m}m ago`;
+        const h = Math.floor(m / 60);
+        const remM = m % 60;
+        return remM ? `${h}h ${remM}m ago` : `${h}h ago`;
+      }
+
+      // Align to documented statuses plus UI-only helpers
+      function normalizeStatus(status) {
+        const s = String(status || "").toLowerCase();
+        if (s === "queued" || s === "queue" || s === "queueing") return "queueing";
+        if (s === "progress" || s === "processing" || s === "running") return "progress";
+        if (s === "done" || s === "completed" || s === "complete") return "done";
+        if (s === "error" || s === "failed") return "error";
+        if (s === "timed_out" || s === "timed-out") return "timed_out";
+        if (s === "rate_limited" || s === "rate-limited") return "rate_limited";
+        if (s === "api_error" || s === "api-error") return "api_error";
+        return s || "unknown";
+      }
+
+      function pillForStatus(status) {
+        const s = normalizeStatus(status);
+        if (s === "done") return { text: "Done", cls: "pill ok" };
+        if (s === "timed_out") return { text: "Stopped checking", cls: "pill warn" };
+        if (s === "error") return { text: "Failed", cls: "pill err" };
+        if (s === "api_error") return { text: "API error", cls: "pill err" };
+        if (s === "rate_limited") return { text: "Rate limited", cls: "pill err" };
+        if (s === "progress") return { text: "Processing", cls: "pill warn" };
+        if (s === "queueing") return { text: "Queued", cls: "pill" };
+        return { text: s, cls: "pill" };
+      }
+
+      function openInNewTab(url) {
+        try {
+          if (!url) return;
+          window.open(url, "_blank", "noopener,noreferrer");
+        } catch (_) {}
+      }
+
+      function downloadBoth(spreadsheetUrl, jsonUrl) {
+        if (spreadsheetUrl) openInNewTab(spreadsheetUrl);
+        if (jsonUrl && jsonUrl !== spreadsheetUrl) {
+          setTimeout(() => openInNewTab(jsonUrl), 150);
+        }
+      }
+
+      // ----------------------------
+      // Elements
+      // ----------------------------
+      const elRows = document.getElementById("rows");
+      const elSummary = document.getElementById("summaryLine");
+      const elOverallElapsed = document.getElementById("overallElapsed");
+      const elRefreshLine = document.getElementById("refreshLine");
+      const elHintBox = document.getElementById("hintBox");
+
+      // ----------------------------
+      // Read initial tool data
+      // ----------------------------
+      function readToolOutput() {
+        const out = window.openai?.toolOutput;
+        if (isObj(out) && Array.isArray(out.jobs)) return out;
+        return null;
+      }
+
+      function readToolMeta() {
+        const meta = window.openai?.toolResponseMetadata;
+        return isObj(meta) ? meta : {};
+      }
+
+      function getJobsFromToolOutput() {
+        const out = readToolOutput();
+        const jobs = out?.jobs;
+        if (!Array.isArray(jobs)) return [];
+
+        return jobs
+          .map((j, idx) => {
+            const guid = typeof j?.guid === "string" && j.guid.trim() ? j.guid.trim() : null;
+            const key = guid || `local-${idx}`;
+            const canPoll =
+              typeof j?.can_poll === "boolean" ? j.can_poll : Boolean(guid);
+
+            return {
+              key,
+              url: typeof j?.url === "string" ? j.url : "",
+              guid,
+              can_poll: canPoll,
+              status: normalizeStatus(j?.status || (guid ? "queueing" : "error")),
+              platform: typeof j?.platform === "string" ? j.platform : null,
+              download_link: typeof j?.download_link === "string" ? j.download_link : null,
+              json_url: typeof j?.json_url === "string" ? j.json_url : null,
+              error: typeof j?.error === "string" ? j.error : null,
+            };
+          })
+          .slice(0, 3);
+      }
+
+      function getLimitInfo() {
+        const out = readToolOutput();
+        const limit = Number(out?.limit);
+        if (!Number.isFinite(limit)) return null;
+        if (limit === 0) return "Limit: all";
+        return `Limit: ${limit}`;
+      }
+
+      // ----------------------------
+      // State
+      // ----------------------------
+      const pageStart = Date.now();
+      const state = new Map(); // key -> { key, guid, can_poll, url, status, startedAt, download_link, json_url, error, platform, retry_after_seconds, last_server_status }
+      const dom = new Map(); // key -> { statusEl, elapsedEl, dlEl }
+      let didTimeout = false;
+
+      let lastCheckedAt = null;
+      let nextPollAt = null;
+
+      let pollTimer = null;
+      let elapsedTimer = null;
+      let overallTimeoutTimer = null;
+
+      // Exponential backoff state
+      const backoff = {
+        attempt: 0,
+        maxAttempt: 8,
+        maxDelayMs: 5 * 60 * 1000,
+      };
+
+      function computeCounts() {
+        const list = Array.from(state.values());
+        const total = list.length;
+
+        const counts = {
+          queueing: 0,
+          progress: 0,
+          done: 0,
+          error: 0,
+          timed_out: 0,
+          rate_limited: 0,
+          api_error: 0,
+          other: 0,
+        };
+
+        for (const it of list) {
+          const s = normalizeStatus(it.status);
+          if (counts[s] !== undefined) counts[s] += 1;
+          else counts.other += 1;
+        }
+
+        return { total, counts };
+      }
+
+      function setSummaryLine() {
+        const { total, counts } = computeCounts();
+        const limitInfo = getLimitInfo();
+
+        if (total === 0) {
+          elSummary.textContent = "";
+          return;
+        }
+
+        const parts = [`${total} URL${total === 1 ? "" : "s"}`];
+
+        if (counts.done) parts.push(`Done: ${counts.done}`);
+        if (counts.progress) parts.push(`Processing: ${counts.progress}`);
+        if (counts.queueing) parts.push(`Queued: ${counts.queueing}`);
+        if (counts.timed_out) parts.push(`Stopped checking: ${counts.timed_out}`);
+        if (counts.error || counts.api_error) parts.push(`Failed: ${counts.error + counts.api_error}`);
+        if (counts.rate_limited) parts.push(`Rate limited: ${counts.rate_limited}`);
+        if (limitInfo) parts.push(limitInfo);
+
+        elSummary.textContent = parts.join(" • ");
+      }
+
+      function setRefreshLine() {
+        const now = Date.now();
+
+        const next = didTimeout
+          ? "Stopped checking"
+          : nextPollAt == null
+          ? "Refreshing paused"
+          : `Refreshing in ${Math.max(0, Math.ceil((nextPollAt - now) / 1000))}s`;
+
+        const last =
+          lastCheckedAt == null ? "Last refreshed —" : `Last refreshed ${fmtAgo(now - lastCheckedAt)}`;
+
+        elRefreshLine.textContent = `${next} | ${last}`;
+      }
+
+      function renderRow(job) {
+        const tr = document.createElement("tr");
+
+        const tdUrl = document.createElement("td");
+        tdUrl.className = "urlcell";
+
+        const urlLine = document.createElement("span");
+        urlLine.className = "urltext";
+
+        if (job.url) {
+          urlLine.innerHTML = `<a href="${escapeHtml(job.url)}" title="${escapeHtml(
+            job.url
+          )}" target="_blank" rel="noreferrer">${escapeHtml(job.url)}</a>`;
+        } else {
+          urlLine.textContent = "(URL not provided)";
+        }
+
+        const sub = document.createElement("div");
+        sub.className = "subtext mono";
+        const guidText = job.guid ? `GUID: ${job.guid}` : "GUID: —";
+        const plat = job.platform ? ` • ${job.platform}` : "";
+        sub.textContent = `${guidText}${plat}`;
+
+        tdUrl.appendChild(urlLine);
+        tdUrl.appendChild(sub);
+
+        const tdStatus = document.createElement("td");
+        const statusPill = document.createElement("span");
+        const pill = pillForStatus(job.status);
+        statusPill.className = pill.cls;
+        statusPill.textContent = pill.text;
+        tdStatus.appendChild(statusPill);
+
+        const tdElapsed = document.createElement("td");
+        tdElapsed.className = "mono";
+        tdElapsed.textContent = "00:00";
+
+        const tdDl = document.createElement("td");
+        tdDl.innerHTML = `<span class="meta">—</span>`;
+
+        tr.appendChild(tdUrl);
+        tr.appendChild(tdStatus);
+        tr.appendChild(tdElapsed);
+        tr.appendChild(tdDl);
+
+        elRows.appendChild(tr);
+
+        dom.set(job.key, { statusEl: statusPill, elapsedEl: tdElapsed, dlEl: tdDl });
+      }
+
+      function updateRow(key) {
+        const it = state.get(key);
+        const d = dom.get(key);
+        if (!it || !d) return;
+
+        const pill = pillForStatus(it.status);
+        d.statusEl.className = pill.cls;
+        d.statusEl.textContent = pill.text;
+
+        d.elapsedEl.textContent = fmtElapsed(Date.now() - (it.startedAt || pageStart));
+
+        const s = normalizeStatus(it.status);
+
+        if (s === "done") {
+          const hasAny = Boolean(it.download_link || it.json_url);
+          if (hasAny) {
+            const title = it.download_link && it.json_url ? "Download spreadsheet + JSON" : "Download";
+            d.dlEl.innerHTML = `
+              <button
+                type="button"
+                class="dlbtn"
+                data-key="${escapeHtml(key)}"
+                title="${escapeHtml(title)}"
+              >Download</button>
+            `;
+          } else {
+            d.dlEl.innerHTML = `<span class="meta">—</span>`;
+          }
+        } else if (s === "rate_limited") {
+          const ra = Number(it.retry_after_seconds || 0);
+          const msg = it.error || "Rate limit exceeded";
+          d.dlEl.innerHTML = `<span class="pill err" title="${escapeHtml(msg)}">Wait ${ra > 0 ? ra + "s" : ""}</span>`;
+        } else if (s === "timed_out") {
+          const last = it.last_server_status ? `Last known status: ${it.last_server_status}` : "";
+          const msg = it.error || "Stopped checking.";
+          d.dlEl.innerHTML = `
+            <span class="pill warn" title="${escapeHtml(msg)}">Stopped</span>
+            <details>
+              <summary>Details</summary>
+              <div class="meta">${escapeHtml(msg)}${last ? "<br/>" + escapeHtml(last) : ""}</div>
+            </details>
+          `;
+        } else if (s === "error" || s === "api_error") {
+          const msg = it.error || "Unknown error";
+          d.dlEl.innerHTML = `
+            <span class="pill err" title="${escapeHtml(msg)}">Failed</span>
+            <details>
+              <summary>Details</summary>
+              <div class="meta">${escapeHtml(msg)}</div>
+            </details>
+          `;
+        } else {
+          d.dlEl.innerHTML = `<span class="meta">—</span>`;
+        }
+      }
+
+      function updateAllElapsed() {
+        elOverallElapsed.textContent = fmtElapsed(Date.now() - pageStart);
+        for (const key of state.keys()) updateRow(key);
+        setRefreshLine();
+      }
+
+      function isTerminalStatus(s) {
+        const st = normalizeStatus(s);
+        return st === "done" || st === "error" || st === "timed_out";
+      }
+
+      function allTerminal() {
+        for (const it of state.values()) {
+          if (!isTerminalStatus(it.status)) return false;
+        }
+        return true;
+      }
+
+      function stopTimers() {
+        if (pollTimer) clearTimeout(pollTimer);
+        pollTimer = null;
+        if (elapsedTimer) clearInterval(elapsedTimer);
+        elapsedTimer = null;
+        if (overallTimeoutTimer) clearTimeout(overallTimeoutTimer);
+        overallTimeoutTimer = null;
+      }
+
+      function markTimeout() {
+        didTimeout = true;
+
+        for (const [key, it] of state.entries()) {
+          if (isTerminalStatus(it.status)) continue;
+
+          // Non-destructive: don't convert to "error". Keep last known status.
+          state.set(key, {
+            ...it,
+            last_server_status: normalizeStatus(it.status),
+            status: "timed_out",
+            error: "Stopped checking due to timeout. The export may still finish later.",
+          });
+          updateRow(key);
+        }
+
+        setSummaryLine();
+        nextPollAt = null;
+        setRefreshLine();
+        stopTimers();
+        notifyHeightSoon();
+      }
+
+      // ----------------------------
+      // Polling via MCP tool (exponential backoff + rate-limit aware)
+      // ----------------------------
+      async function pollOnce() {
+        const pollable = Array.from(state.values())
+          .filter((it) => it.can_poll && it.guid && !isTerminalStatus(it.status))
+          .map((it) => it.guid);
+
+        if (!pollable.length) {
+          lastCheckedAt = Date.now();
+          setSummaryLine();
+          setRefreshLine();
+          notifyHeightSoon();
+          return { serverBackoffSeconds: 0, hadError: false, wasRateLimited: false };
+        }
+
+        if (!window.openai?.callTool) {
+          for (const it of state.values()) {
+            if (it.can_poll && it.guid && !isTerminalStatus(it.status)) {
+              state.set(it.key, { ...it, status: "api_error", error: "window.openai.callTool unavailable" });
+              updateRow(it.key);
+            }
+          }
+          lastCheckedAt = Date.now();
+          setSummaryLine();
+          notifyHeightSoon();
+          return { serverBackoffSeconds: 0, hadError: true, wasRateLimited: false };
+        }
+
+        let result;
+        try {
+          result = await window.openai.callTool("check_job_status", { guids: pollable });
+        } catch (e) {
+          console.warn("poll error:", e);
+          lastCheckedAt = Date.now();
+          setSummaryLine();
+          notifyHeightSoon();
+          return { serverBackoffSeconds: 0, hadError: true, wasRateLimited: false };
+        }
+
+        lastCheckedAt = Date.now();
+
+        const sc = result?.structuredContent;
+        const jobs = sc?.jobs;
+        const pollAfterSeconds = Number(sc?.pollAfterSeconds || 0);
+
+        let anyRateLimited = false;
+        let anyApiError = false;
+
+        if (Array.isArray(jobs)) {
+          for (const j of jobs) {
+            const guid = String(j?.guid || "");
+            if (!guid) continue;
+
+            // find matching entry by guid
+            const match = Array.from(state.values()).find((it) => it.guid === guid);
+            if (!match) continue;
+
+            const prev = state.get(match.key);
+            const nextStatus = normalizeStatus(j?.status || prev.status);
+
+            if (nextStatus === "rate_limited") anyRateLimited = true;
+            if (nextStatus === "api_error") anyApiError = true;
+
+            state.set(match.key, {
+              ...prev,
+              status: nextStatus,
+              platform: typeof j?.platform === "string" ? j.platform : prev.platform,
+              download_link: typeof j?.download_link === "string" ? j.download_link : prev.download_link,
+              json_url: typeof j?.json_url === "string" ? j.json_url : prev.json_url,
+              error: typeof j?.error === "string" ? j.error : prev.error,
+              retry_after_seconds: Number(j?.retry_after_seconds || prev.retry_after_seconds || 0) || 0,
+            });
+
+            updateRow(match.key);
+          }
+        }
+
+        setSummaryLine();
+        notifyHeightSoon();
+
+        const serverBackoffSeconds = pollAfterSeconds > 0 ? pollAfterSeconds : 0;
+        const hadError = Boolean(anyApiError);
+        return { serverBackoffSeconds, hadError, wasRateLimited: anyRateLimited };
+      }
+
+      function bumpBackoff() {
+        backoff.attempt = Math.min(backoff.maxAttempt, backoff.attempt + 1);
+      }
+
+      function resetBackoff() {
+        backoff.attempt = 0;
+      }
+
+      function computeNextDelayMs(baseIntervalMs, serverBackoffSeconds) {
+        const exp = Math.min(backoff.maxAttempt, backoff.attempt);
+        let delayMs = baseIntervalMs * Math.pow(2, exp);
+
+        if (serverBackoffSeconds && serverBackoffSeconds > 0) {
+          delayMs = Math.max(delayMs, serverBackoffSeconds * 1000);
+        }
+
+        delayMs = Math.min(delayMs, backoff.maxDelayMs);
+
+        const jitter = 0.9 + Math.random() * 0.2;
+        delayMs = Math.max(1000, Math.round(delayMs * jitter));
+
+        return delayMs;
+      }
+
+      async function scheduleNextPoll(baseIntervalMs, serverBackoffSeconds) {
+        if (didTimeout) return;
+
+        if (allTerminal()) {
+          nextPollAt = null;
+          setRefreshLine();
+          stopTimers(); // stop 1-second elapsed timer too
+          return;
+        }
+
+        const delayMs = computeNextDelayMs(baseIntervalMs, serverBackoffSeconds);
+        nextPollAt = Date.now() + delayMs;
+        setRefreshLine();
+
+        pollTimer = setTimeout(async () => {
+          if (didTimeout) return;
+
+          if (allTerminal()) {
+            nextPollAt = null;
+            setRefreshLine();
+            stopTimers(); // stop 1-second elapsed timer too
+            return;
+          }
+
+          const { serverBackoffSeconds: bo, hadError, wasRateLimited } = await pollOnce();
+
+          if (allTerminal()) {
+            nextPollAt = null;
+            setRefreshLine();
+            stopTimers(); // stop 1-second elapsed timer too
+            return;
+          }
+
+          if (wasRateLimited || bo > 0) bumpBackoff();
+          else if (hadError) bumpBackoff();
+          else resetBackoff();
+
+          await scheduleNextPoll(baseIntervalMs, bo);
+        }, delayMs);
+      }
+
+      // ----------------------------
+      // Main
+      // ----------------------------
+      async function main() {
+        elRows.innerHTML = "";
+
+        const jobs = getJobsFromToolOutput();
+        if (!jobs.length) {
+          elRows.innerHTML = `
+            <tr><td colspan="4">
+              <div class="empty">
+                Missing job data. Please ask ChatGPT to try again.
+              </div>
+            </td></tr>
+          `;
+          setSummaryLine();
+          nextPollAt = null;
+          lastCheckedAt = null;
+          setRefreshLine();
+          notifyHeightSoon();
+          return;
+        }
+
+        const meta = readToolMeta();
+        const pollIntervalSeconds = Number(meta?.pollIntervalSeconds || 20);
+        const pollTimeoutMinutes = Number(meta?.pollTimeoutMinutes || 20);
+
+        const baseIntervalMs = Math.max(5, pollIntervalSeconds) * 1000;
+        const pollTimeoutMs = Math.max(1, pollTimeoutMinutes) * 60 * 1000;
+
+        for (const j of jobs) {
+          state.set(j.key, {
+            key: j.key,
+            guid: j.guid,
+            can_poll: j.can_poll,
+            url: j.url,
+            status: j.status,
+            platform: j.platform,
+            startedAt: Date.now(),
+            download_link: j.download_link || null,
+            json_url: j.json_url || null,
+            error: j.error || null,
+            retry_after_seconds: 0,
+            last_server_status: null,
+          });
+          renderRow(j);
+          updateRow(j.key);
+        }
+
+        setSummaryLine();
+        elHintBox.hidden = false;
+
+        // Row download clicks (event delegation)
+        elRows.addEventListener("click", (e) => {
+          const btn = e.target?.closest?.("button.dlbtn[data-key]");
+          if (!btn) return;
+          const key = btn.getAttribute("data-key");
+          const it = state.get(key);
+          if (!it) return;
+          downloadBoth(it.download_link, it.json_url);
+        });
+
+        // Elapsed ticker + refresh line
+        elapsedTimer = setInterval(updateAllElapsed, 1000);
+        updateAllElapsed();
+
+        // Overall timeout (non-destructive)
+        overallTimeoutTimer = setTimeout(() => {
+          if (!allTerminal()) markTimeout();
+        }, pollTimeoutMs);
+
+        // First poll immediately
+        const { serverBackoffSeconds, hadError, wasRateLimited } = await pollOnce();
+        if (wasRateLimited || serverBackoffSeconds > 0) bumpBackoff();
+        else if (hadError) bumpBackoff();
+        else resetBackoff();
+
+        if (allTerminal()) {
+          nextPollAt = null;
+          setRefreshLine();
+          stopTimers(); // ensure 1-second timer stops
+          notifyHeightSoon();
+          return;
+        }
+
+        await scheduleNextPoll(baseIntervalMs, serverBackoffSeconds);
+        notifyHeightSoon();
+      }
+
+      main();
+    </script>
+  </body>
+</html>
